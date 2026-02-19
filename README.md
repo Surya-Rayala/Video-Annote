@@ -18,7 +18,7 @@ You can:
 
 ## Screenshot
 
-![Video-Annote screenshot](screenshot.png)
+![Video-Annote screenshot](docs/screenshot.png)
 
 ---
 
@@ -118,7 +118,7 @@ python -m video_annote
 
 ```bash
 git clone https://github.com/Surya-Rayala/Video-Annote.git
-cd video-annote
+cd Video-Annote
 uv sync
 uv run python -m video_annote
 ```
