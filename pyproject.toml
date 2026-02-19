@@ -1,6 +1,6 @@
 [project]
 name = "video-annote"
-version = "0.1.0"
+version = "0.1.1"
 description = "video-annote is a lightweight multi-video annotation tool (PyQt5) for labeling time ranges (“labels”) while reviewing one or more videos."
 readme = "README.md"
 authors = [
