@@ -145,6 +145,8 @@ Use **Selected videos** (multi-select) to choose which videos appear in the grid
 - Drag the timeline slider to seek
 - Play is disabled at the end of the Time Source (use Restart)
 
+> **Note on playback smoothness:** On some machines (or when the system is under heavy load), video playback may feel choppy and/or audio may stutter. If that happens, click **Restart** or nudge the timeline slider slightly **forward or backward** to help playback re-sync and settle.
+
 ---
 
 ## Creating annotations (label workflow)
@@ -197,6 +199,19 @@ app.exec_()
 ```
 
 ---
+
+## Troubleshooting
+
+
+### Playback feels choppy or audio stutters
+On some systems, playback smoothness depends on your computer’s performance and current load. If video or audio becomes unstable:
+- Click **Restart**, or
+- Move the timeline slider slightly **forward or backward** to let playback re-sync.
+
+### Playhead jumps back to the start near the end (known issue)
+Sometimes, after reaching the end of the **Time Source**, playback may jump back to **00:00**.  This usually happens while labeling (after **Confirm Start** or after clicking **End**), **Confirm End** may not save because the end time becomes earlier than the start time.
+
+**Fix:** drag the timeline slider to the desired label end time (away from the start time), then click **Confirm End** again.
 
 ## License
 

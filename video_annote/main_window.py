@@ -1110,11 +1110,11 @@ class MainWindow(QMainWindow):
             return
         self._timeline_drag_active = False
 
-        if self._timeline_drag_was_playing:
-            self.video_grid.play_all()
-            self._update_play_pause_buttons()
-            QTimer.singleShot(250, self._update_play_pause_buttons)
+        # Resume only if playback was active at drag start AND we are not at end-of-media.
+        # This prevents QMediaPlayer from restarting at 0 when play() is called at EndOfMedia.
+        self._resume_if_allowed(self._timeline_drag_was_playing)
 
+        # Clear intent for next drag.
         self._timeline_drag_was_playing = False
         self._update_play_pause_buttons()
 
@@ -1220,6 +1220,7 @@ class MainWindow(QMainWindow):
 
     def _on_skill_timeline_edit_commit(self, idx: int, start_ms: int, end_ms: int):
         # If a drag gate was active, end it now so playback can resume appropriately.
+        # _on_timeline_drag_end() already applies end-of-media guard.
         self._on_timeline_drag_end()
         self.slider.clear_edit_overlay()
         if idx < 0 or idx >= len(self.state.annotations):
@@ -1250,6 +1251,7 @@ class MainWindow(QMainWindow):
 
     def _on_skill_timeline_edit_cancel(self, idx: int):
         # If a drag gate was active, end it now so playback can resume appropriately.
+        # _on_timeline_drag_end() already applies end-of-media guard.
         self._on_timeline_drag_end()
         self.slider.clear_edit_overlay()
         self._refresh_overlays_and_timeline()
