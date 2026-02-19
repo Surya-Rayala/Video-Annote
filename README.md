@@ -12,8 +12,6 @@ You can:
 - Review and edit annotations via a **timeline** and a **table**
 - Autosave session state as you work
 
-> Sync is **best-effort**, not mandatory: the tool uses the Time Source as the reference timeline and keeps other videos close to it during playback, but you can still annotate even if videos differ in duration or aren’t perfectly aligned.
-
 ---
 
 ## Screenshot
@@ -26,14 +24,12 @@ You can:
 
 - **Python >= 3.10**
 - **PyQt5**
-- **ffmpeg + ffprobe** (recommended)
+- **ffmpeg + ffprobe**
 
 ### Why ffmpeg/ffprobe?
 `video-annote` uses `ffmpeg/ffprobe` for:
 - importing URL-based videos (including `.m3u8`)
 - reading duration/FPS reliably
-
-If you only import local files, the app may still work without ffmpeg, but URL import and some metadata features will be limited.
 
 ---
 
@@ -41,7 +37,7 @@ If you only import local files, the app may still work without ffmpeg, but URL i
 
 Pick **one** method below.
 
-### Option A (recommended): Conda
+### Option A: Conda
 If you plan to use Conda for Python, install ffmpeg into the same environment:
 
 ```bash
@@ -105,16 +101,7 @@ pip install video-annote
 python -m video_annote
 ```
 
-### B) Install from a local clone (pip editable)
-
-```bash
-git clone https://github.com/Surya-Rayala/Video-Annote.git
-cd video-annote
-pip install -e .
-python -m video_annote
-```
-
-### C) Using uv (great for development)
+### B) Using uv (great for development)
 
 ```bash
 git clone https://github.com/Surya-Rayala/Video-Annote.git
