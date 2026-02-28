@@ -130,6 +130,40 @@ def ffmpeg_remux(src: str, dst: str) -> None:
         raise RuntimeError(out.strip() or "ffmpeg failed")
 
 
+def ffmpeg_transcode_to_mp4(src: str, dst: str) -> None:
+    """Transcode to a highly-compatible H.264/AAC MP4 without changing resolution.
+
+    - Video: H.264 (libx264), yuv420p pixel format (broad compatibility)
+    - Audio: AAC (or dropped if missing)
+    - Container: MP4 with faststart for better playback
+
+    Notes:
+      - No scaling filter is applied, so the input resolution is preserved.
+      - We map the first video stream and (optionally) the first audio stream.
+    """
+    if os.path.exists(dst):
+        os.remove(dst)
+
+    cmd = [
+        find_ffmpeg(),
+        "-y",
+        "-i", src,
+        "-map", "0:v:0",
+        "-map", "0:a:0?",
+        "-c:v", "libx264",
+        "-pix_fmt", "yuv420p",
+        "-preset", "veryfast",
+        "-crf", "18",
+        "-c:a", "aac",
+        "-b:a", "192k",
+        "-movflags", "+faststart",
+        dst,
+    ]
+    code, out = run_cmd(cmd)
+    if code != 0:
+        raise RuntimeError(out.strip() or "ffmpeg transcode failed")
+
+
 def ffprobe_get_duration_fps(path: str) -> Tuple[int, float]:
     """
     Best-effort duration(ms) and fps for a local file.
@@ -216,23 +250,24 @@ def import_local_video_into_session(
     if not ok:
         raise ValueError(msg)
 
-    ext = ext_lower(local_path)
-    if force_mp4_name and ext != ".mp4":
-        # Keep extension but still use video-N naming; do not rename to .mp4 unless remuxing
-        # (Renaming without remux can break playback.)
-        pass
-
-    dst_name = f"{video_id}{ext}"
+    # Always store as a re-encoded, highly-compatible MP4 to avoid "black video" issues
+    # from uncommon codecs/profiles that Qt backends sometimes fail to decode.
+    dst_name = f"{video_id}.mp4"
     dst_path = os.path.join(session_dir, dst_name)
 
     # Replace existing
     if os.path.exists(dst_path):
         os.remove(dst_path)
 
-    if copy_instead_of_move:
-        shutil.copy2(local_path, dst_path)
-    else:
-        shutil.move(local_path, dst_path)
+    # Transcode into the session folder (preserves resolution; improves compatibility)
+    ffmpeg_transcode_to_mp4(local_path, dst_path)
+
+    # If caller requested move semantics, remove the original after a successful transcode.
+    if not copy_instead_of_move:
+        try:
+            os.remove(local_path)
+        except Exception:
+            pass
 
     dur_ms, fps = ffprobe_get_duration_fps(dst_path)
     return ImportedVideoInfo(
@@ -265,7 +300,8 @@ def import_url_video_into_session(
     dst_name = f"{video_id}.mp4" if force_mp4_output else f"{video_id}{ext_lower(url) or '.mp4'}"
     dst_path = os.path.join(session_dir, dst_name)
 
-    ffmpeg_remux(url, dst_path)
+    # Always transcode for maximum decoder compatibility.
+    ffmpeg_transcode_to_mp4(url, dst_path)
     dur_ms, fps = ffprobe_get_duration_fps(dst_path)
 
     return ImportedVideoInfo(
