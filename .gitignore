@@ -5,6 +5,13 @@ build/
 dist/
 wheels/
 *.egg-info
+.pytest_cache/
+.ruff_cache/
 
 # Virtual environments
 .venv
+
+# OS / editor clutter
+.DS_Store
+.idea/
+.vscode/

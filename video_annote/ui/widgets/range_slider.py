@@ -1,10 +1,10 @@
-# video_annote/widgets/range_slider.py
+# video_annote/ui/widgets/range_slider.py
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import List, Optional
 
-from PyQt5.QtCore import Qt, QRect
+from PyQt5.QtCore import Qt, QRect, pyqtSignal
 from PyQt5.QtGui import QColor, QPainter
 from PyQt5.QtWidgets import QSlider, QStyle, QStyleOptionSlider
 
@@ -25,12 +25,18 @@ class RangeOverlaySlider(QSlider):
     A QSlider that draws 0..N colored overlay ranges on the groove.
 
     Safety:
-      - Disables click-to-jump (only allow dragging by handle)
+      - A click off the handle only asks to go there (``seek_requested``) while ``click_to_seek`` is
+        set; the main window clears it while a label is being recorded, so a stray click cannot move
+        the frame Confirm Start/End would take
       - Ignores mouse wheel (prevents accidental timeline changes)
+      - Takes no keyboard focus: keyboard steps would move the handle without seeking the players
+        (frame stepping is offered by the main window's shortcuts instead)
     """
+    seek_requested = pyqtSignal(int)  # slider value (ms) clicked off the handle
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.click_to_seek = False
 
         self._overlays: List[OverlayRange] = []
 
@@ -40,6 +46,7 @@ class RangeOverlaySlider(QSlider):
         # Cursor feedback: show pointing hand when hovering the handle.
         self.setMouseTracking(True)
         self._cursor_on_handle = False
+        self.setFocusPolicy(Qt.NoFocus)
 
     # -------------
     # Overlay API
@@ -72,10 +79,18 @@ class RangeOverlaySlider(QSlider):
         handle = self.style().subControlRect(QStyle.CC_Slider, opt, QStyle.SC_SliderHandle, self)
         return handle.contains(pos)
 
+    def _value_at(self, pos) -> int:
+        opt = QStyleOptionSlider()
+        self.initStyleOption(opt)
+        groove = self.style().subControlRect(QStyle.CC_Slider, opt, QStyle.SC_SliderGroove, self)
+        handle = self.style().subControlRect(QStyle.CC_Slider, opt, QStyle.SC_SliderHandle, self)
+        return QStyle.sliderValueFromPosition(self.minimum(), self.maximum(), pos.x() - groove.x() - handle.width() // 2,
+                                              max(1, groove.width() - handle.width()))
+
     def _update_hover_cursor(self, pos) -> None:
-        """Update cursor to indicate clickability only when hovering the slider handle."""
+        """Update cursor to indicate clickability: the handle, and the whole bar while a click goes there."""
         try:
-            on_handle = self._click_is_on_handle(pos)
+            on_handle = self._click_is_on_handle(pos) or (self.click_to_seek and self.maximum() > self.minimum())
         except Exception:
             on_handle = False
 
@@ -87,10 +102,18 @@ class RangeOverlaySlider(QSlider):
             self.unsetCursor()
 
     def mousePressEvent(self, event):
-        # Disable click-to-jump: only allow interaction when the handle is clicked.
-        if event.button() == Qt.LeftButton and not self._click_is_on_handle(event.pos()):
-            self._update_hover_cursor(event.pos())
+        # only the left button; off the handle it goes there only when allowed (see the class notes), and
+        # dragging the handle always works. (Other buttons would make QSlider jump to the click.)
+        if event.button() != Qt.LeftButton:
             event.ignore()
+            return
+        if not self._click_is_on_handle(event.pos()):
+            self._update_hover_cursor(event.pos())
+            if self.click_to_seek and self.maximum() > self.minimum():
+                self.seek_requested.emit(self._value_at(event.pos()))
+                event.accept()
+            else:
+                event.ignore()
             return
         super().mousePressEvent(event)
 

@@ -1,13 +1,79 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
 [project]
 name = "video-annote"
-version = "0.1.3"
-description = "video-annote is a lightweight multi-video annotation tool (PyQt5) for labeling time ranges (“labels”) while reviewing one or more videos."
+dynamic = ["version"]
+description = "Multi-video annotation tool (PyQt5) for labeling time ranges in synchronized recordings and exporting frame-accurate, audio-synchronized clips for machine learning."
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
     { name = "Surya Chand Rayala", email = "suryachand2k1@gmail.com" }
 ]
-license = { file = "LICENSE" }
 requires-python = ">=3.10"
 dependencies = [
-    "pyqt5==5.15.11",
+    "PyQt5>=5.15.10,<5.16",
+    "tzdata; sys_platform == 'win32'",  # time zones by name (Windows has no IANA database of its own)
+]
+keywords = ["annotation", "video", "labeling", "dataset", "machine-learning", "ffmpeg", "pyqt5"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: X11 Applications :: Qt",
+    "Environment :: MacOS X",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Video",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+[project.urls]
+Homepage = "https://github.com/Surya-Rayala/Video-Annote"
+Repository = "https://github.com/Surya-Rayala/Video-Annote"
+Issues = "https://github.com/Surya-Rayala/Video-Annote/issues"
+Changelog = "https://github.com/Surya-Rayala/Video-Annote/blob/main/CHANGELOG.md"
+
+[project.scripts]
+video-annote = "video_annote.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+]
+
+[tool.hatch.version]
+path = "video_annote/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["video_annote"]
+core-metadata-version = "2.4"  # widely accepted by upload tools (2.5 is rejected by twine < 6.2)
+
+[tool.hatch.build.targets.sdist]
+core-metadata-version = "2.4"
+include = [
+    "video_annote",
+    "tests",
+    "docs",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+]
+
+[tool.uv]
+# PyQt5's Qt binaries newer than 5.15.2 are not published for Windows; let the lock file resolve there too.
+constraint-dependencies = ["pyqt5-qt5==5.15.2; sys_platform == 'win32'"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-p no:cacheprovider"
+markers = [
+    "media: needs ffmpeg/ffprobe on PATH (or FFMPEG_BIN/FFPROBE_BIN)",
+    "samples: needs real recordings; set VIDEO_ANNOTE_SAMPLES to their folder",
+    "gui: drives the real Qt multimedia backend headlessly (macOS)",
 ]
